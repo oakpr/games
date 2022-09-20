@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Clone all of the games into the working directory
-mkdir -p $(dirname $0)/dist/games
-cd $(dirname $0)/dist/games
+mkdir -p ./dist/games
+cd ./dist/games
 cat ../../games.list | while read line; do
 	REPO=$(echo $line | cut -d ' ' -f 1)
 	BRANCH=$(echo $line | cut -d ' ' -f 2)
