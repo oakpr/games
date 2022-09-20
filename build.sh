@@ -11,6 +11,7 @@ cat ../../games.list | while read line; do
 	echo "CLONING $BRANCH of $REPO to $NAME"
 	rm -rf $NAME
 	git clone -b $BRANCH --single-branch $REPO $NAME
+	rm -rf $NAME/.git
 done
 cd ../../
 NAMES=$(cat games.list | cut -d ' ' -f 1 | rev | cut -d '/' -f 1 | rev)
