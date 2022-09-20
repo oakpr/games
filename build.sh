@@ -10,7 +10,11 @@ cat ../../games.list | while read line; do
 	export NAMES="$NAMES $NAME"
 	echo "CLONING $BRANCH of $REPO to $NAME"
 	rm -rf $NAME
-	git clone -b $BRANCH --single-branch $REPO $NAME
+	wget -O$BRANCH.zip https://github.com/oakpr/snek/archive/refs/heads/$BRANCH.zip
+	unzip $BRANCH.zip
+	rm $BRANCH.zip
+	mv $NAME-$BRANCH $NAME
+	rm -rf $NAME-$BRANCH
 	rm -rf $NAME/.git
 done
 cd ../../
