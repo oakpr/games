@@ -13,7 +13,7 @@ jobs:
       - name: Run shell script
         run: |
           bash build.sh
-          touch build/.nojekyll
+          touch dist/.nojekyll
       - name: Push git subdirectory as branch
         uses: s0/git-publish-subdir-action@v2.5.1
         env:
