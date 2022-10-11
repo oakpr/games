@@ -1,5 +1,5 @@
+import {Snake} from "./snake.js";
 export const maxPlayers = 2;
-export const players = [];
 const keysPressedMap = {};
 document.addEventListener("keydown", (event) => {
   keysPressedMap[event.key.toLocaleLowerCase()] = true;
@@ -13,15 +13,19 @@ export class Player {
       this.controllerId = controller.index;
       this.movement = [controller.axes[0], controller.axes[1]];
       this.buttons = [controller.buttons[1].pressed, controller.buttons[0].pressed];
-      this.associatedEntity = 0;
+      this.snake = new Snake(controller.index);
       this.disconnected = false;
     } else {
       this.controllerId = -1;
       this.movement = [0, 0];
       this.buttons = [keysPressedMap.z, keysPressedMap.x];
-      this.associatedEntity = 0;
+      this.snake = new Snake(-1);
       this.disconnected = false;
     }
+    this.buttonsDirty = [false, false];
+    this.movementDirty = [false, false];
+    this.oldButtons = this.buttons;
+    this.oldMovement = this.movement;
   }
   tick() {
     if (this.controllerId >= 0) {
@@ -60,12 +64,23 @@ export class Player {
       }
     }
     const length = Math.sqrt(this.movement[0] ** 2 + this.movement[1] ** 2);
-    this.movement[0] /= length;
-    this.movement[1] /= length;
+    if (length > 0) {
+      this.movement[0] /= length;
+      this.movement[1] /= length;
+    }
+    this.movementDirty = [false, false];
+    for (let i = 0; i < this.oldMovement.length; i++) {
+      this.movementDirty[i] = sign(Math.round(this.oldMovement[i] * 0.6)) !== sign(Math.round(this.movement[i] * 0.6));
+    }
+    this.oldMovement = this.movement;
+    for (let i = 0; i < this.oldButtons.length; i++) {
+      this.buttonsDirty[i] = this.oldButtons[i] !== this.buttons[i];
+    }
+    this.oldButtons = this.buttons;
   }
 }
-export function tickPlayerInput() {
-  const existingPlayers = players.filter(Boolean).map((v) => v.controllerId);
+export function tickPlayerInput(gameState) {
+  const existingPlayers = gameState.players.filter(Boolean).map((v) => v.controllerId);
   const newControllers = navigator.getGamepads().filter(Boolean).filter((v) => !existingPlayers.includes(v.index)).filter((v) => v.buttons.some(Boolean)).map((v) => new Player(v));
   if (!existingPlayers.includes(-1)) {
     let keyboardActive;
@@ -73,30 +88,34 @@ export function tickPlayerInput() {
       keyboardActive = keyboardActive || keysPressedMap[key];
     }
     if (keyboardActive) {
-      newControllers.push(new Player(null));
+      const player = new Player(null);
+      newControllers.push(player);
     }
   }
   for (const player of newControllers) {
-    const emptySlot = players.indexOf(null);
+    const emptySlot = gameState.players.indexOf(null);
     if (emptySlot !== -1) {
-      players[emptySlot] = player;
-    } else if (players.length < maxPlayers) {
-      players.push(player);
+      gameState.players[emptySlot] = player;
+    } else if (gameState.players.length < maxPlayers) {
+      gameState.players.push(player);
     } else {
       console.log("can't add new player");
       continue;
     }
-    console.log(players);
+    console.log(gameState.players);
   }
-  for (const player of players) {
+  for (const player of gameState.players) {
     if (!player) {
       continue;
     }
     player.tick();
     if (player.disconnected) {
       console.log(`dropped player ${player.controllerId}`);
-      players[players.indexOf(player)] = null;
+      gameState.players[gameState.players.indexOf(player)] = null;
       continue;
     }
   }
+}
+function sign(n) {
+  return n ? n < 0 ? -1 : 1 : 0;
 }
