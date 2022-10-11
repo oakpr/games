@@ -10,7 +10,7 @@ cat ../../games.list | while read line; do
 	export NAMES="$NAMES $NAME"
 	echo "CLONING $BRANCH of $REPO to $NAME"
 	rm -rf $NAME
-	wget -O$BRANCH.zip https://github.com/oakpr/snek/archive/refs/heads/$BRANCH.zip
+	wget -O$BRANCH.zip $REPO/archive/refs/heads/$BRANCH.zip
 	unzip $BRANCH.zip
 	rm $BRANCH.zip
 	mv $NAME-$BRANCH $NAME
