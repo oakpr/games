@@ -10,6 +10,9 @@ document.onkeydown = keyDown;
 // body[i][1] = Y pos of ith segment
 // body[body.length] = (X, Y) of the "tail" segment
 var body = [];
+
+const wrap = true;
+
 const CANVAS_SIZE = canvas.height;
 
 // Grid is a 20x20 grid on the canvas
@@ -73,6 +76,12 @@ class Fruit
                     shouldPlace = false;
                 }
             });
+            portalBasket.forEach(portal => {
+                if(portal.fruitX == randomX && portal.fruitY == randomY)
+                {
+                    shouldPlace = false;
+                }
+            });
             body.forEach(part => {
                 if(part[0] == randomX && part[1] == randomY)
                 {
@@ -99,9 +108,16 @@ class Fruit
 
 let juicyApple = new Fruit(0, 0, 'red');
 let sourOrange = new Fruit(0, 0, 'orange');
-let unripeMango = new Fruit(0, 0, 'limegreen');
-let fruitBasket = [juicyApple, sourOrange, unripeMango];
+// let unripeMango = new Fruit(0, 0, 'limegreen');
+// let rat = new Fruit(0, 0, "brown");
+let fruitBasket = [juicyApple, sourOrange];
+
+let portal0 = new Fruit(0, 0, 'limegreen');
+let portal1 = new Fruit(0, 0, 'limegreen');
+let portalBasket = [portal0, portal1]
+
 fruitBasket.forEach(fruit => fruit.placeFruit());
+portalBasket.forEach(portal => portal.placeFruit());
 
 const speed = 5.0;
 const time_interval = 60 / speed;
@@ -120,29 +136,30 @@ function gameLoop()
 {
     window.requestAnimationFrame(gameLoop);
     score = score > body.length ? score : body.length;
-    let head = 'Sn';
+    let header_txt = 'Sn';
     for(i = 0; i < score; i++)
     {
-        head += 'a';
+        header_txt += 'a';
     }
-    head += 'ke';
-    heading.innerHTML = head;
+    header_txt += 'ke';
+    heading.innerHTML = header_txt;
     time += 1;
     drawBackground();
     // Movement loop:
     if(time >= time_interval) {
         time = 0;
         body = moveSnake(body);
+        if(checkCollision(body))
+        {
+            // restart the game
+            snakeDir = directions.NORTH;
+            moveBuffer = snakeDir;
+            body = Array();
+            body.push([3, GRID_COUNT - 3]);
+            body.push([3, GRID_COUNT - 2]);
+        }
     }
-    if(checkCollision(body))
-    {
-        // restart the game
-        snakeDir = directions.NORTH;
-        moveBuffer = snakeDir;
-        body = Array();
-        body.push([3, GRID_COUNT - 3]);
-        body.push([3, GRID_COUNT - 2]);
-    }
+    portalBasket.forEach(fruit => fruit.drawFruit());
     drawSnake(body);
     fruitBasket.forEach(fruit => fruit.drawFruit());
 }
@@ -158,7 +175,7 @@ function drawBackground()
 function drawSnake(snake)
 {
     ctx.fillStyle = 'green';
-    snake.forEach(part => ctx.fillRect(part[0] * GRID_SIZE, part[1] * GRID_SIZE, SNAKE_SIZE, SNAKE_SIZE))
+    snake.forEach(part => ctx.fillRect(part[0] * GRID_SIZE, part[1] * GRID_SIZE, SNAKE_SIZE, SNAKE_SIZE));
 }
 
 // collision check happens immidietly after movement step
@@ -244,10 +261,47 @@ function moveSnake(snake)
             dir = [-1, 0];
             break;
     }
-    snake.unshift([snake[0][0] + dir[0], snake[0][1] + dir[1]]);
+    let port = 0;
+    portalBasket.forEach(portal => port += portal.eatFruit(snake));
+    if(port == 0)
+    {
+        snake.unshift([snake[0][0] + dir[0], snake[0][1] + dir[1]]);
+    }
+    else if(portal0.fruitX == 0)
+    {
+        snake.unshift([portal1.fruitX, portal1.fruitY]);
+        portal1.setPosition(0, 0);
+    }
+    else if(portal1.fruitX == 0)
+    {
+        snake.unshift([portal0.fruitX, portal0.fruitY]);
+        portal0.setPosition(0, 0);
+    }
+    // screen wrap
+    // left or right walls
+    if(wrap)
+    {
+        if(snake[0][0] == 0)
+        {
+            snake[0][0] = GRID_COUNT - 2;
+        }
+        else if(snake[0][0] == GRID_COUNT - 1)
+        {
+            snake[0][0] = 1;
+        }
+        // top or bottom walls
+        if(snake[0][1] == 0)
+        {
+            snake[0][1] = GRID_COUNT - 2;
+        }
+        else if (snake[0][1] == GRID_COUNT - 1)
+        {
+            snake[0][1] = 1;
+        }
+    }
     let fed = 0;
     fruitBasket.forEach(fruit => fed += fruit.eatFruit(snake));
-    if(fed == 0)
+    if(fed == 0 && port == 0)
     {
         snake.pop();
     }
