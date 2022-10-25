@@ -26,3 +26,4 @@ for name in $NAMES; do
 	cat ./template.html | sed "s/NAME/$name/g" >> ./dist/index.html
 done
 cat ./tail.html >> ./dist/index.html
+cp hiscore.json dist
