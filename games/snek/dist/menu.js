@@ -1,16 +1,20 @@
+import {chooseCategory} from "./category.js";
+import {GameMode} from "./game-mode.js";
 export const defaultSettings = {
-  enableBg: true,
+  flashy: true,
   wrap: false,
   gridWidth: 10,
   gridHeight: 10,
   testDisplay: false,
   waitForFrame: true,
   showFrameRate: false,
-  music: true
+  music: true,
+  autoMode: false,
+  fast: false
 };
 const options = [
   ["snek menu"],
-  ["enable bg?", "enableBg", [true, false]],
+  ["flashy?", "flashy", [true, false]],
   ["wrap?", "wrap", [true, false]],
   ["width?", "gridWidth", [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]],
   ["height?", "gridHeight", [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]],
@@ -18,6 +22,8 @@ const options = [
   ["frame limit?", "waitForFrame", [true, false]],
   ["frame display?", "showFrameRate", [false, true]],
   ["music?", "music", [true, false]],
+  ["demo?", "autoMode", [false, true]],
+  ["fast?", "fast", [false, true]],
   ["press a to start"]
 ];
 let cursorPos = 1;
@@ -25,7 +31,12 @@ let suppressY = false;
 let suppressX = false;
 export default function menu(ctx, gameState) {
   ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-  ctx.fillRect(32, 64, ctx.canvas.width - 64, ctx.canvas.height - 128);
+  ctx.fillRect(32, 64, ctx.canvas.width - 64, ctx.canvas.height - 64);
+  ctx.font = "16px Major Mono Display";
+  ctx.strokeStyle = "white";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.strokeText(chooseCategory(gameState.settings), ctx.canvas.width / 2, ctx.canvas.height - 56, ctx.canvas.width - 128);
   const entryRange = Math.round((ctx.canvas.height - 128) / 128);
   const entrySpacing = 48;
   for (let i = -entryRange; i < entryRange + 1; i++) {
@@ -78,7 +89,7 @@ export default function menu(ctx, gameState) {
   } else {
     suppressX = false;
   }
-  if (gameState.players[0]?.buttons[0]) {
-    gameState.gameStarted = true;
+  if (gameState.players[0]?.buttons[0] && gameState.players[0]?.buttonsDirty[0]) {
+    gameState.gameMode = GameMode.Game;
   }
 }

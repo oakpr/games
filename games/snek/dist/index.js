@@ -1,25 +1,34 @@
 import {background} from "./background.js";
+import fruit from "./fruit.js";
 import grid, {cellPositionHelper, cellSizeHelper} from "./grid.js";
 import hud from "./hud.js";
 import * as input from "./input.js";
 import menu, {defaultSettings} from "./menu.js";
 import music from "./music.js";
 import snake from "./snake.js";
+import {GameMode} from "./game-mode.js";
+import warning from "./warning.js";
+import hiScore from "./hiscore.js";
+import compareScores from "./compare.js";
 let lastTick = Date.now();
-const gameState = {
+export const defaultGameState = {
   players: [],
   clock: 0,
   score: 0,
+  highScore: 0,
   settings: defaultSettings,
-  gameStarted: false
+  gameMode: GameMode.Warning,
+  fruits: [],
+  name: void 0
 };
+const gameState = JSON.parse(JSON.stringify(defaultGameState));
 const canvas = document.querySelector("#viewport");
 const ctx = canvas.getContext("2d");
 const frameTimeHistory = [];
 background(gameState);
 music(gameState);
 function tick() {
-  if (gameState.settings.enableBg && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  if (gameState.settings.flashy && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   } else {
     ctx.fillStyle = "rgb(32, 32, 32)";
@@ -30,12 +39,32 @@ function tick() {
   lastTick = Date.now();
   gameState.clock += delta;
   grid(ctx, gameState);
-  if (gameState.gameStarted) {
+  if (gameState.gameMode === GameMode.Game) {
     snake(ctx, gameState, delta);
+    fruit(gameState, ctx);
+    if (gameState.settings.testDisplay && gameState.players[0].buttons[1]) {
+      gameState.gameMode = GameMode.UploadScore;
+    }
   } else {
-    menu(ctx, gameState);
+    switch (gameState.gameMode) {
+      case GameMode.Menu:
+        menu(ctx, gameState);
+        break;
+      case GameMode.Warning:
+        warning(ctx, gameState);
+        break;
+      case GameMode.UploadScore:
+        hiScore(gameState, ctx);
+        break;
+      case GameMode.CompareScore:
+        compareScores(gameState, ctx);
+        break;
+      default:
+        alert("UNIMPLEMENTED GAMEMODE");
+    }
   }
   hud(gameState, delta, ctx);
+  gameState.highScore = Math.max(gameState.highScore, gameState.score);
   if (gameState.settings.testDisplay) {
     ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
     ctx.lineWidth = 2;

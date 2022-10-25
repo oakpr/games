@@ -1,4 +1,5 @@
-import {cellSizeHelper, cellPositionHelper} from "./grid.js";
+import {cellSizeHelper, cellPositionHelper, interPos, distance, addPos, posCompare} from "./grid.js";
+import auto from "./demo.js";
 export default function snake(ctx, gameState, delta) {
   for (const player of gameState.players) {
     if (player === void 0) {
@@ -7,7 +8,7 @@ export default function snake(ctx, gameState, delta) {
     player.snake.tick(gameState, ctx, delta);
   }
 }
-var Facing;
+export var Facing;
 (function(Facing2) {
   Facing2[Facing2["Uninit"] = 0] = "Uninit";
   Facing2[Facing2["Up"] = 1] = "Up";
@@ -24,9 +25,12 @@ export class Snake {
     this.dying = false;
     this.player = player;
     this.timer = 0;
+    this.combo = 0;
+    this.colorTimer = 0;
+    this.thickness = 0.8;
   }
   speed() {
-    return 1e3 / this.len;
+    return 1e3 / (Math.sqrt(2 * (this.combo + 0.5)) + Math.sqrt(this.len / 2));
   }
   tick(gameState, ctx, delta) {
     if (this.facing === 0) {
@@ -44,10 +48,15 @@ export class Snake {
       this.lastFacing = this.facing;
       this.tail.push([x2, y2]);
     }
+    this.combo -= delta / 3e3;
+    this.combo = Math.max(this.combo, 0);
+    this.score *= 0.95 ** (delta / 1e3);
+    this.thickness = (this.thickness * 2 + 0.8) / 3;
     const player = gameState.players.find((v) => v.controllerId === this.player);
     const x = player.movement[0];
     const y = player.movement[1];
     let f = this.facing;
+    const oldF = this.facing;
     if (x > 0) {
       f = 2;
     }
@@ -85,21 +94,29 @@ export class Snake {
     if (f !== badDirection) {
       this.facing = f;
     }
+    if (player.buttonsDirty[0] || gameState.settings.fast) {
+      this.timer = this.speed();
+    }
     this.timer += delta;
     if (this.timer > this.speed()) {
-      this.move(gameState);
+      if (gameState.settings.autoMode) {
+        this.facing = auto([gameState.settings.gridWidth, gameState.settings.gridHeight], this.tail[0], oldF);
+      }
       this.timer = 0;
+      this.move(gameState);
     }
-    ctx.strokeStyle = "white";
+    const color = this.color(delta / 1e3, gameState);
+    ctx.strokeStyle = `hsl(${color.join(",")})`;
     const w = cellSizeHelper(ctx, gameState);
-    ctx.lineWidth = w * 0.8;
+    ctx.lineWidth = gameState.settings.flashy ? w * 0.8 * this.thickness : w * 0.7;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
     ctx.beginPath();
     if (this.tail.length > 1) {
       const headPos = cellPositionHelper(ctx, gameState, this.tail[0], w);
       let nextPos = cellPositionHelper(ctx, gameState, this.tail[1], w);
-      const animHeadPos = interPos(nextPos, headPos, this.timer / this.speed());
+      const interp = (this.timer / this.speed()) ** (1 / 4);
+      const animHeadPos = interPos(nextPos, headPos, interp);
       ctx.moveTo(animHeadPos[0], animHeadPos[1]);
       if (distance(this.tail[1], this.tail[0]) === 1) {
         ctx.lineTo(animHeadPos[0], animHeadPos[1]);
@@ -126,7 +143,7 @@ export class Snake {
           ctx.lineTo(nextPos[0], nextPos[1]);
           ctx.lineTo(tailPos[0], tailPos[1]);
         } else {
-          const animTailPos = interPos(tailPos, nextPos, this.timer / this.speed());
+          const animTailPos = interPos(tailPos, nextPos, interp);
           ctx.lineTo(nextPos[0], nextPos[1]);
           ctx.lineTo(animTailPos[0], animTailPos[1]);
         }
@@ -185,14 +202,19 @@ export class Snake {
       this.tail.pop();
     }
   }
-}
-function addPos(a, b) {
-  return [a[0] + b[0], a[1] + b[1]];
-}
-function interPos(a, b, c) {
-  const delta = [(b[0] - a[0]) * c, (b[1] - a[1]) * c];
-  return addPos(a, delta);
-}
-function distance(a, b) {
-  return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]);
+  intersects(p) {
+    if (this.tail.some((segment) => posCompare(segment, p))) {
+      return true;
+    }
+    return false;
+  }
+  color(delta, gameState) {
+    const fac = Math.sqrt(this.combo);
+    this.colorTimer += delta * fac;
+    const hue = this.colorTimer * 30 % 360;
+    const colorness = Math.min(fac, 1);
+    const sat = gameState.settings.flashy ? colorness * 100 : 0;
+    const value = (1 - (colorness / 2) ** 2) * 100;
+    return [hue, `${sat}%`, `${value}%`];
+  }
 }

@@ -9,12 +9,12 @@ export default function grid(ctx, gameState) {
   ctx.strokeStyle = "black";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(centerX - gridW / 2, centerY - gridH / 2);
-  ctx.lineTo(centerX + gridW / 2, centerY - gridH / 2);
-  ctx.lineTo(centerX + gridW / 2, centerY + gridH / 2);
-  ctx.lineTo(centerX - gridW / 2, centerY + gridH / 2);
-  ctx.lineTo(centerX - gridW / 2, centerY - gridH / 2);
-  ctx.lineTo(centerX + gridW / 2, centerY - gridH / 2);
+  ctx.moveTo(Math.round(centerX - gridW / 2), Math.round(centerY - gridH / 2));
+  ctx.lineTo(Math.round(centerX + gridW / 2), Math.round(centerY - gridH / 2));
+  ctx.lineTo(Math.round(centerX + gridW / 2), Math.round(centerY + gridH / 2));
+  ctx.lineTo(Math.round(centerX - gridW / 2), Math.round(centerY + gridH / 2));
+  ctx.lineTo(Math.round(centerX - gridW / 2), Math.round(centerY - gridH / 2));
+  ctx.lineTo(Math.round(centerX + gridW / 2), Math.round(centerY - gridH / 2));
   ctx.stroke();
   ctx.beginPath();
   ctx.strokeStyle = "rgba(1.0, 1.0, 1.0, 0.5)";
@@ -22,12 +22,12 @@ export default function grid(ctx, gameState) {
   const left = centerX - gridW / 2;
   const top = centerY - gridH / 2;
   for (let i = 1; i < widthCells; i++) {
-    ctx.moveTo(left + cellSize * i, top);
-    ctx.lineTo(left + cellSize * i, top + cellSize * heightCells);
+    ctx.moveTo(Math.round(left + cellSize * i) + 0.5, Math.round(top));
+    ctx.lineTo(Math.round(left + cellSize * i) + 0.5, Math.round(top + cellSize * heightCells));
   }
   for (let i = 1; i < heightCells; i++) {
-    ctx.moveTo(left, top + cellSize * i);
-    ctx.lineTo(left + cellSize * widthCells, top + cellSize * i);
+    ctx.moveTo(Math.round(left), Math.round(top + cellSize * i) + 0.5);
+    ctx.lineTo(Math.round(left + cellSize * widthCells), Math.round(top + cellSize * i) + 0.5);
   }
   ctx.stroke();
 }
@@ -53,4 +53,17 @@ export function cellPositionHelper(ctx, gameState, position, cellSizeInput) {
     left + cellSize * (position[0] + 0.5),
     top + cellSize * (position[1] + 0.5)
   ];
+}
+export function posCompare(a, b) {
+  return a[0] === b[0] && a[1] === b[1];
+}
+export function addPos(a, b) {
+  return [a[0] + b[0], a[1] + b[1]];
+}
+export function interPos(a, b, c) {
+  const delta = [(b[0] - a[0]) * c, (b[1] - a[1]) * c];
+  return addPos(a, delta);
+}
+export function distance(a, b) {
+  return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]);
 }

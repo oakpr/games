@@ -1,41 +1,75 @@
+import {GameMode} from "./game-mode.js";
+const actx = new AudioContext();
+const eventsToStartAudio = [
+  "keydown",
+  "click"
+];
+for (const event of eventsToStartAudio) {
+  document.addEventListener(event, async () => {
+    await actx.resume();
+  });
+}
 const tracks = [
   {
-    el: document.querySelector("audio#synth"),
+    location: "./mus/synth.ogg",
+    node: void 0,
+    gain: new GainNode(actx),
     cond(state) {
-      return state.gameStarted ? 1 : 0.5;
+      return state.gameMode === GameMode.Game ? 1 : 0.5;
     }
   },
   {
-    el: document.querySelector("audio#bass"),
+    location: "./mus/bass.ogg",
+    node: void 0,
+    gain: new GainNode(actx),
     cond(state) {
-      return state.gameStarted ? 0.4 : 0;
+      return state.gameMode === GameMode.Game ? 1 : 0;
     }
   },
   {
-    el: document.querySelector("audio#drums"),
+    location: "./mus/drums.ogg",
+    node: void 0,
+    gain: new GainNode(actx),
     cond(state) {
       return 0;
     }
   },
   {
-    el: document.querySelector("audio#lead"),
+    location: "./mus/lead.ogg",
+    node: void 0,
+    gain: new GainNode(actx),
     cond(state) {
-      return state.gameStarted ? 1 : 0;
+      return state.gameMode === GameMode.Game ? 1 : 0;
     }
   }
 ];
-for (const track of tracks) {
-  void track.el.play();
-}
+(async () => {
+  await actx.suspend();
+  console.log("Setting up audio...");
+  const trackPromises = tracks.map(async (track) => (async () => {
+    console.log(`Fetching ${track.location}...`);
+    const audioBuf = await fetch(track.location).then(async (response) => response.arrayBuffer());
+    console.log(`Got audio data for ${track.location}, ${audioBuf.byteLength} bytes`);
+    const audioData = await actx.decodeAudioData(audioBuf);
+    track.node = new AudioBufferSourceNode(actx, {
+      buffer: audioData,
+      loop: true
+    });
+    track.node.connect(track.gain);
+    track.gain.connect(actx.destination);
+  })());
+  console.log(trackPromises);
+  await Promise.all(trackPromises);
+  console.log("Done setting up audio! Starting...");
+  for (const track of tracks) {
+    track.node.start();
+  }
+  await actx.resume();
+})();
 export default function music(gameState) {
-  const time = tracks[0].el.currentTime;
   for (const track of tracks) {
     const tgt = gameState.settings.music ? track.cond(gameState) : 0;
-    track.el.volume = (track.el.volume + tgt) / 2;
-    console.log(track.el.currentTime - tracks[0].el.currentTime);
-    if (Math.abs(track.el.currentTime - tracks[0].el.currentTime) > 0.2) {
-      track.el.fastSeek(tracks[0].el.currentTime);
-    }
+    track.gain.gain.value = (track.gain.gain.value + tgt) / 2;
   }
   window.setTimeout(music, 100, gameState);
 }
