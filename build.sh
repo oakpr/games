@@ -26,4 +26,6 @@ for name in $NAMES; do
 	cat ./template.html | sed "s/NAME/$name/g" >> ./dist/index.html
 done
 cat ./tail.html >> ./dist/index.html
-cp hiscore.json dist
+for dir in dist/games/*; do
+	cp hiscore.json $dir;
+done
